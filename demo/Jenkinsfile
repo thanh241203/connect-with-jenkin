@@ -32,8 +32,8 @@ pipeline {
             steps {
                 script {
                     def imageTag = "v${env.BUILD_NUMBER}"
-                    sh "docker build -t ${IMAGE_NAME}:${imageTag} ."
-                    sh "docker tag ${IMAGE_NAME}:${imageTag} ${IMAGE_NAME}:latest"
+                    bat "docker build -t ${IMAGE_NAME}:${imageTag} ."
+                    bat "docker tag ${IMAGE_NAME}:${imageTag} ${IMAGE_NAME}:latest"
                 }
             }
         }
@@ -41,10 +41,10 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    sh "echo ${DOCKERHUB_PASS} | docker login -u ${DOCKERHUB_USER} --password-stdin"
+                    bat "echo ${DOCKERHUB_PASS} | docker login -u ${DOCKERHUB_USER} --password-stdin"
                     def imageTag = "v${env.BUILD_NUMBER}"
-                    sh "docker push ${IMAGE_NAME}:${imageTag}"
-                    sh "docker push ${IMAGE_NAME}:latest"
+                    bat "docker push ${IMAGE_NAME}:${imageTag}"
+                    bat "docker push ${IMAGE_NAME}:latest"
                 }
             }
         }
@@ -52,7 +52,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    sh '''
+                    bat '''
                     kubectl set image deployment/demo-deploy demo-container=${IMAGE_NAME}:latest --record
                     kubectl rollout status deployment/demo-deploy
                     '''
