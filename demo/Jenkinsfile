@@ -17,14 +17,17 @@ pipeline {
         stage('Build') {
             steps {
                 echo '🔨 Building the project...'
-                bat 'mvn clean package -DskipTests'
+                dir('demo'){
+                    echo 'In demo'
+                    bat 'mvn clean package -DskipTests'
+                }
             }
         }
 
         stage('Run') {
             steps {
                 echo '🚀 Starting application...'
-                bat 'java -jar target/*.jar'
+                bat 'java -jar target/demo-0.0.1-SNAPSHOT.jar demo.jar'
             }
         }
     }
