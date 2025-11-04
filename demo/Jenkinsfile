@@ -1,0 +1,85 @@
+// Định nghĩa toàn bộ pipeline
+pipeline {
+    // Chỉ định nơi chạy Job (Jenkins agent/node)
+    agent any
+
+    // Biến môi trường chung
+    environment {
+        // Thay thế bằng tên Docker Image của bạn (ví dụ: thanh241203/springboot-app)
+        DOCKER_IMAGE = 'thanhkon241203265/ks-app'
+        // Tên Credentials ID cho Docker Hub (được tạo trong Jenkins -> Manage Credentials)
+        DOCKER_CREDENTIAL_ID = 'github-pat'
+        // Tên file Deployment YAML của bạn
+        K8S_DEPLOYMENT_FILE = 'deployment.yaml'
+    }
+
+    // Các bước/giai đoạn của quy trình CI/CD
+    stages {
+
+        // --- 1. Giai đoạn Kiểm tra và Xây dựng (CI) ---
+        stage('Checkout & Build') {
+            steps {
+                echo 'Bắt đầu quá trình Build và Test...'
+                // 1. Dọn dẹp và Build project Java (tạo ra file JAR)
+                sh 'mvn clean install -DskipTests'
+
+                // 2. Chạy Unit Tests (tùy chọn, nếu bạn muốn chạy tách biệt)
+                // sh 'mvn test'
+            }
+        }
+
+        // --- 2. Giai đoạn Tạo và Đẩy Image Docker ---
+        stage('Build & Push Docker Image') {
+            steps {
+                script {
+                    // Lấy 7 ký tự đầu của commit hash để làm Tag cố định (Immutable Tag)
+                    def gitCommit = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+                    def imageTag = "build-${env.BUILD_NUMBER}-${gitCommit}"
+
+                    // 1. Build Docker Image
+                    echo "Đang tạo Docker Image: ${env.DOCKER_IMAGE}:${imageTag}"
+                    sh "docker build -t ${env.DOCKER_IMAGE}:${imageTag} ."
+
+                    // 2. Đẩy Image lên Docker Registry (sử dụng Credentials đã lưu)
+                    withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDENTIAL_ID, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                        sh "docker push ${env.DOCKER_IMAGE}:${imageTag}"
+                    }
+
+                    // Lưu Image Tag vào biến môi trường toàn cục để sử dụng trong Deploy
+                    env.IMAGE_TAG_TO_DEPLOY = imageTag
+                }
+            }
+        }
+
+        // --- 3. Giai đoạn Triển khai (CD) ---
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo "Triển khai Image: ${env.DOCKER_IMAGE}:${env.IMAGE_TAG_TO_DEPLOY} lên Kubernetes"
+                script {
+                    // 1. Cập nhật file Deployment YAML
+                    // (Sử dụng 'sed' để thay thế Tag của image cũ bằng Tag mới cố định)
+                    // Cần đảm bảo file Deployment có sẵn trong thư mục
+                    sh "sed -i 's|image: ${env.DOCKER_IMAGE}:.*|image: ${env.DOCKER_IMAGE}:${env.IMAGE_TAG_TO_DEPLOY}|g' ${env.K8S_DEPLOYMENT_FILE}"
+
+                    // 2. Áp dụng Deployment mới vào Kubernetes Cluster
+                    sh "kubectl apply -f ${env.K8S_DEPLOYMENT_FILE}"
+
+                    // 3. Đợi Rollout hoàn thành
+                    sh "kubectl rollout status deployment/${env.webAppName}"
+                }
+            }
+        }
+    }
+
+    // Xử lý sau khi Job hoàn thành (thành công hoặc thất bại)
+    post {
+        always {
+            echo 'Hoàn tất quá trình Pipeline.'
+        }
+        failure {
+            echo 'Pipeline thất bại. Vui lòng kiểm tra log lỗi.'
+            // Gửi thông báo thất bại (ví dụ: qua Slack/Email)
+        }
+    }
+}
