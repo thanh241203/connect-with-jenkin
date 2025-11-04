@@ -28,8 +28,6 @@ pipeline {
             steps {
                 echo '🔨 Building the project...'
                 dir('demo') {
-                    // Dùng 'sh' thay vì 'bat' nếu bạn dùng Jenkins Agent là Linux/Unix
-                    // Giữ 'bat' nếu Jenkins Agent là Windows
                     bat 'mvn clean package -DskipTests'
                 }
             }
@@ -52,7 +50,6 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     script {
                         def imageTag = "v${env.BUILD_NUMBER}"
-                        // Sử dụng lệnh 'bat' cho Windows Agent
                         bat """
                     echo Logging in to DockerHub...
                     echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
@@ -66,7 +63,7 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                echo '🚀 Deploying new image to Kubernetes...'
+                echo '🚀 Deploying new image and ensuring Kubernetes resources are applied...'
                 withCredentials([file(credentialsId: env.K8S_CONFIG_CREDENTIALS_ID, variable: 'KUBECONFIG_FILE')]) {
                     script {
                         def imageTag = "v${env.BUILD_NUMBER}"
@@ -74,8 +71,17 @@ pipeline {
 
                         env.KUBECONFIG = KUBECONFIG_FILE
 
+                        dir('demo') {
+                            echo 'Applying Kubernetes resources (Deployment & Service) from the demo directory...'
+                            // Đảm bảo Service được tạo/cập nhật
+                            bat "kubectl apply -f service.yaml -n ${env.K8S_NAMESPACE}"
+                            // Đảm bảo Deployment tồn tại
+                            bat "kubectl apply -f deployment.yaml -n ${env.K8S_NAMESPACE}"
+                        }
+
                         bat "kubectl set image deployment/${env.K8S_DEPLOYMENT_NAME} springboot=${fullImage} -n ${env.K8S_NAMESPACE}"
 
+                        // Chờ Rollout hoàn tất
                         bat "kubectl rollout status deployment/${env.K8S_DEPLOYMENT_NAME} -n ${env.K8S_NAMESPACE}"
 
                         echo "Deployment ${env.K8S_DEPLOYMENT_NAME} updated with image: ${fullImage}"
@@ -84,8 +90,6 @@ pipeline {
             }
         }
     }
-
-    // Khối POST nằm đúng vị trí (ngang hàng với 'stages')
     post {
         success {
             echo '✅ Pipeline finished successfully! Image built and deployed.'
