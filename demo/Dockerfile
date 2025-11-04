@@ -1,3 +1,11 @@
+FROM maven:3.9.5-amazoncorretto-17 AS builder
+WORKDIR /app
+# Copy pom.xml và code
+COPY pom.xml .
+COPY src /app/src
+# Chạy build (bỏ qua tests trong Docker build nếu bạn đã chạy tests trong Jenkins)
+RUN mvn clean package -DskipTests
+
 # Step 1: Use official OpenJDK image as base
 FROM openjdk:17-jdk-slim
 

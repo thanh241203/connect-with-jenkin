@@ -8,7 +8,7 @@ public class KeyController {
 
     @GetMapping()
     public String sayHello2() {
-        return  "Hello, im here rere";
+        return  "Hello";
     }
 
     @GetMapping("/get-all")
