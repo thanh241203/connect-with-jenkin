@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKERHUB_USER = 'thanhkon241203265'
+        DOCKERHUB_PASS = credentials('dockerhub-credentials')  // lưu trên Jenkins
+        IMAGE_NAME = 'thanhkon241203265/ks-app'
+    }
     tools {
         maven 'MAVEN_HOME'
         jdk 'JDK17'
@@ -25,8 +30,32 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                dir('demo') {
-                    bat 'docker build -t demo-app:latest .'
+                script {
+                    def imageTag = "v${env.BUILD_NUMBER}"
+                    sh "docker build -t ${IMAGE_NAME}:${imageTag} ."
+                    sh "docker tag ${IMAGE_NAME}:${imageTag} ${IMAGE_NAME}:latest"
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    sh "echo ${DOCKERHUB_PASS} | docker login -u ${DOCKERHUB_USER} --password-stdin"
+                    def imageTag = "v${env.BUILD_NUMBER}"
+                    sh "docker push ${IMAGE_NAME}:${imageTag}"
+                    sh "docker push ${IMAGE_NAME}:latest"
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    sh '''
+                    kubectl set image deployment/demo-deploy demo-container=${IMAGE_NAME}:latest --record
+                    kubectl rollout status deployment/demo-deploy
+                    '''
                 }
             }
         }
