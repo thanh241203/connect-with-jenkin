@@ -5,6 +5,9 @@ pipeline {
         DOCKERHUB_USER = 'thanhkon241203265'
         DOCKERHUB_PASS = credentials('dockerhub-credentials')  // lưu trên Jenkins
         IMAGE_NAME = 'thanhkon241203265/ks-jenkin'
+        K8S_CONFIG_CREDENTIALS_ID = 'my-kubeconfig' // Thay bằng ID credentials K8s
+        K8S_NAMESPACE = 'default' // Thay bằng namespace của bạn
+        K8S_DEPLOYMENT_NAME = 'springboot-app'
     }
     tools {
         maven 'MAVEN_HOME'
@@ -22,7 +25,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo '🔨 Building the project...'
-                dir('demo'){
+                dir('demo') {
                     bat 'mvn clean package -DskipTests'
                 }
             }
@@ -58,22 +61,34 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                script {
-                    bat 'kubectl apply -f demo/deployment.yaml'
-                    bat 'kubectl apply -f demo/service.yaml'
-                    bat 'minikube service springboot-service'
+                echo '🚀 Deploying new image to Kubernetes...'
+                withCredentials([file(credentialsId: env.K8S_CONFIG_CREDENTIALS_ID, variable: 'KUBECONFIG_FILE')]) {
+                    script {
+                        def imageTag = "v${env.BUILD_NUMBER}"
+                        def fullImage = "${env.IMAGE_NAME}:${imageTag}"
+
+                        env.KUBECONFIG = KUBECONFIG_FILE
+
+
+                        bat "kubectl set image deployment/${env.K8S_DEPLOYMENT_NAME} app-container-name=${fullImage} -n ${env.K8S_NAMESPACE}"
+
+
+                        bat "kubectl rollout status deployment/${env.K8S_DEPLOYMENT_NAME} -n ${env.K8S_NAMESPACE}"
+
+                        echo "Deployment ${env.K8S_DEPLOYMENT_NAME} updated with image: ${fullImage}"
+                    }
                 }
             }
+
         }
 
-    }
-
-    post {
-        success {
-            echo '✅ Build & Run successful!'
-        }
-        failure {
-            echo '❌ Build failed!'
+        post {
+            success {
+                echo '✅ Build & Run successful!'
+            }
+            failure {
+                echo '❌ Build failed!'
+            }
         }
     }
 }
