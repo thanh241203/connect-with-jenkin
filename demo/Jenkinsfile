@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKERHUB_USER = 'thanhkon241203265'
         DOCKERHUB_PASS = credentials('dockerhub-credentials')  // lưu trên Jenkins
-        IMAGE_NAME = 'thanhkon241203265/ks-app'
+        IMAGE_NAME = 'thanhkon241203265/ks-jenkin'
     }
     tools {
         maven 'MAVEN_HOME'
