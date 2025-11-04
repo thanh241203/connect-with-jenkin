@@ -70,12 +70,7 @@ pipeline {
                         def fullImage = "${env.IMAGE_NAME}:${imageTag}"
 
                         env.KUBECONFIG = KUBECONFIG_FILE
-
-
-                            echo 'Applying Kubernetes resources (Deployment & Service) from the demo directory...'
-                            // Đảm bảo Service được tạo/cập nhật
                         bat "kubectl apply -f ${WORKSPACE}/demo/service.yaml -n ${env.K8S_NAMESPACE}"
-                            // Đảm bảo Deployment tồn tại
                         bat "kubectl apply -f ${WORKSPACE}/demo/deployment.yaml -n ${env.K8S_NAMESPACE}"
 
                         bat "kubectl set image deployment/${env.K8S_DEPLOYMENT_NAME} springboot=${fullImage} -n ${env.K8S_NAMESPACE}"
