@@ -74,7 +74,7 @@ pipeline {
 
                         env.KUBECONFIG = KUBECONFIG_FILE
 
-                        bat "kubectl set image deployment/${env.K8S_DEPLOYMENT_NAME} app-container-name=${fullImage} -n ${env.K8S_NAMESPACE}"
+                        bat "kubectl set image deployment/${env.K8S_DEPLOYMENT_NAME} thanhkon241203265/ks-jenkin:latest=${fullImage} -n ${env.K8S_NAMESPACE}"
 
                         bat "kubectl rollout status deployment/${env.K8S_DEPLOYMENT_NAME} -n ${env.K8S_NAMESPACE}"
 
