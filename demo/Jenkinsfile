@@ -70,22 +70,15 @@ pipeline {
                         def fullImage = "${env.IMAGE_NAME}:${imageTag}"
 
                         env.KUBECONFIG = KUBECONFIG_FILE
-
-                        // Áp dụng Service và Deployment
                         bat "kubectl apply -f ${WORKSPACE}/demo/service.yaml -n ${env.K8S_NAMESPACE}"
                         bat "kubectl apply -f ${WORKSPACE}/demo/deployment.yaml -n ${env.K8S_NAMESPACE}"
 
-                        // Cập nhật Image
                         bat "kubectl set image deployment/${env.K8S_DEPLOYMENT_NAME} springboot=${fullImage} -n ${env.K8S_NAMESPACE}"
 
                         // Chờ Rollout hoàn tất
                         bat "kubectl rollout status deployment/${env.K8S_DEPLOYMENT_NAME} -n ${env.K8S_NAMESPACE}"
 
                         echo "Deployment ${env.K8S_DEPLOYMENT_NAME} updated with image: ${fullImage}"
-                        echo '🌐 Getting service URL...'
-                        bat "minikube start --profile minikube"
-                        def serviceUrl = bat(returnStdout: true, script: "minikube service springboot-service --url --profile minikube -n ${env.K8S_NAMESPACE}").trim()
-                        echo "✅ Service deployed and accessible at: ${serviceUrl}"
                     }
                 }
             }
