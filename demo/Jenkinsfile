@@ -42,11 +42,16 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                script {
-                    bat "echo ${DOCKERHUB_PASS} | docker login -u ${DOCKERHUB_USER} --password-stdin"
-                    def imageTag = "v${env.BUILD_NUMBER}"
-                    bat "docker push ${IMAGE_NAME}:${imageTag}"
-                    bat "docker push ${IMAGE_NAME}:latest"
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        def imageTag = "v${env.BUILD_NUMBER}"
+                        bat """
+                    echo Logging in to DockerHub...
+                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                    docker push ${IMAGE_NAME}:${imageTag}
+                    docker push ${IMAGE_NAME}:latest
+                """
+                    }
                 }
             }
         }
