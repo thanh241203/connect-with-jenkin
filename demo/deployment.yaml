@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: springboot
-          image: thanhkon241203265/ks-jenkin
+          image: thanhkon241203265/ks-jenkin:latest
           ports:
             - containerPort: 8080
           livenessProbe:

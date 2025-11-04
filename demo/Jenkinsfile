@@ -59,25 +59,13 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    bat '''
-                    kubectl set image deployment/demo-deploy demo-container=${IMAGE_NAME}:latest --record
-                    kubectl rollout status deployment/demo-deploy
-                    '''
+                    bat 'kubectl apply -f demo/deployment.yaml'
+                    bat 'kubectl apply -f demo/service.yaml'
+                    bat 'minikube service springboot-service'
                 }
             }
         }
 
-        stage('Run Docker Container') {
-            steps {
-                script {
-                    bat """
-            docker stop demo-app || true
-            docker rm demo-app || true
-            docker run -d -p 8080:8080 --name demo-app ${IMAGE_NAME}:latest
-            """
-                }
-            }
-        }
     }
 
     post {
