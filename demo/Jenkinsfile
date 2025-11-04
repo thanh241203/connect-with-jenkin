@@ -30,10 +30,12 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    def imageTag = "v${env.BUILD_NUMBER}"
-                    bat "docker build -t ${IMAGE_NAME}:${imageTag} ."
-                    bat "docker tag ${IMAGE_NAME}:${imageTag} ${IMAGE_NAME}:latest"
+                dir('demo') {
+                    script {
+                        def imageTag = "v${env.BUILD_NUMBER}"
+                        bat "docker build -t ${IMAGE_NAME}:${imageTag} ."
+                        bat "docker tag ${IMAGE_NAME}:${imageTag} ${IMAGE_NAME}:latest"
+                    }
                 }
             }
         }
@@ -62,11 +64,13 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                bat '''
-                docker stop demo-app || true
-                docker rm demo-app || true
-                docker run -d -p 8080:8080 --name demo-app demo-app:latest
-                '''
+                script {
+                    bat """
+            docker stop demo-app || true
+            docker rm demo-app || true
+            docker run -d -p 8080:8080 --name demo-app ${IMAGE_NAME}:latest
+            """
+                }
             }
         }
     }
