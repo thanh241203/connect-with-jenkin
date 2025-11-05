@@ -64,7 +64,6 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 echo '🚀 Deploying new image and ensuring Kubernetes resources are applied...'
-                bat "minikube start --profile minikube"
                 withCredentials([file(credentialsId: env.K8S_CONFIG_CREDENTIALS_ID, variable: 'KUBECONFIG_FILE')]) {
                     script {
                         def imageTag = "v${env.BUILD_NUMBER}"
@@ -72,7 +71,6 @@ pipeline {
 
                         env.KUBECONFIG = KUBECONFIG_FILE
 
-                        bat "kubectl config use-context minikube"
                         bat "kubectl apply -f ${WORKSPACE}/demo/service.yaml -n ${env.K8S_NAMESPACE}"
                         bat "kubectl apply -f ${WORKSPACE}/demo/deployment.yaml -n ${env.K8S_NAMESPACE}"
 
