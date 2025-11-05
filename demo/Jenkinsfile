@@ -70,6 +70,10 @@ pipeline {
                         def fullImage = "${env.IMAGE_NAME}:${imageTag}"
 
                         env.KUBECONFIG = KUBECONFIG_FILE
+
+                        bat "minikube start --profile minikube"
+
+                        bat "kubectl config use-context minikube"
                         bat "kubectl apply -f ${WORKSPACE}/demo/service.yaml -n ${env.K8S_NAMESPACE}"
                         bat "kubectl apply -f ${WORKSPACE}/demo/deployment.yaml -n ${env.K8S_NAMESPACE}"
 
