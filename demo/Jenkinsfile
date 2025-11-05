@@ -64,14 +64,13 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 echo '🚀 Deploying new image and ensuring Kubernetes resources are applied...'
+                bat "minikube start --profile minikube"
                 withCredentials([file(credentialsId: env.K8S_CONFIG_CREDENTIALS_ID, variable: 'KUBECONFIG_FILE')]) {
                     script {
                         def imageTag = "v${env.BUILD_NUMBER}"
                         def fullImage = "${env.IMAGE_NAME}:${imageTag}"
 
                         env.KUBECONFIG = KUBECONFIG_FILE
-
-                        bat "minikube start --profile minikube"
 
                         bat "kubectl config use-context minikube"
                         bat "kubectl apply -f ${WORKSPACE}/demo/service.yaml -n ${env.K8S_NAMESPACE}"
@@ -83,6 +82,11 @@ pipeline {
                         bat "kubectl rollout status deployment/${env.K8S_DEPLOYMENT_NAME} -n ${env.K8S_NAMESPACE}"
 
                         echo "Deployment ${env.K8S_DEPLOYMENT_NAME} updated with image: ${fullImage}"
+
+                        // Tự động lấy URL sau khi chắc chắn cluster hoạt động
+                        echo '🌐 Getting service URL...'
+                        def serviceUrl = bat(returnStdout: true, script: "minikube service springboot-service --url --profile minikube -n ${env.K8S_NAMESPACE}").trim()
+                        echo "✅ Service deployed and accessible at: ${serviceUrl}"
                     }
                 }
             }
