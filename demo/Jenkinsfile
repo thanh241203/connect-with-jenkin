@@ -74,7 +74,7 @@ pipeline {
                         bat 'kubectl cluster-info'
                         bat "kubectl apply -f ${WORKSPACE}/demo/service.yaml -n ${env.K8S_NAMESPACE}"
                         bat "kubectl apply -f ${WORKSPACE}/demo/deployment.yaml -n ${env.K8S_NAMESPACE}"
-
+                        bat 'kubectl get po -n default'
                         bat "kubectl set image deployment/${env.K8S_DEPLOYMENT_NAME} springboot=${fullImage} -n ${env.K8S_NAMESPACE}"
 
                         // Chờ Rollout hoàn tất
