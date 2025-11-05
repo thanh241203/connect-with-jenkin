@@ -82,11 +82,6 @@ pipeline {
                         bat "kubectl rollout status deployment/${env.K8S_DEPLOYMENT_NAME} -n ${env.K8S_NAMESPACE}"
 
                         echo "Deployment ${env.K8S_DEPLOYMENT_NAME} updated with image: ${fullImage}"
-
-                        // Tự động lấy URL sau khi chắc chắn cluster hoạt động
-                        echo '🌐 Getting service URL...'
-                        def serviceUrl = bat(returnStdout: true, script: "minikube service springboot-service --url --profile minikube -n ${env.K8S_NAMESPACE}").trim()
-                        echo "✅ Service deployed and accessible at: ${serviceUrl}"
                     }
                 }
             }
